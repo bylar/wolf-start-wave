@@ -44,6 +44,7 @@ const props = withDefaults(defineProps<props>(), {
 .avatar {
     &.human {
         background-color: rgb(1, 217, 255);
+        color: rgb(255, 251, 0);
     }
 
     &.wolf {
@@ -52,6 +53,7 @@ const props = withDefaults(defineProps<props>(), {
 
     &.master {
         background-color: rgb(255, 251, 0);
+        color: #000;
     }
 
     &.unknown {

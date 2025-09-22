@@ -11,4 +11,14 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+}
+
+
+body {
+  margin: 0;
+  place-items: center;
+  min-height: 100vh;
+  --el-color-primary: rgb(218, 0, 0);
+
 }

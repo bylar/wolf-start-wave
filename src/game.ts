@@ -1,3 +1,5 @@
+import { getLocalPcID, isNull, read, write } from "./classes/util";
+
 interface Role {
     name: string;
     camp: 'human' | 'wolf' | 'unknown'
@@ -26,13 +28,24 @@ class Player {
 class Log {
 
 }
+
+interface GameData {
+    players: Player[]
+    logs: Log[]
+    version: number
+    stage: 'Welcome' | 'Inviting' | 'Night' | 'Voting' | 'Evening' | 'Result'
+}
 class GameState {
+    player: Player = new Player();
     players: Player[] = [];
     logs: Log[] = [];
     version: number = 0;
     stage: 'Welcome' | 'Inviting' | 'Night' | 'Voting' | 'Evening' | 'Result' = 'Welcome'
 
     public read(data: any) {
+        if (data.player) {
+            this.player = data.player;
+        }
         if (data.players) {
             this.players = data.players;
         }
@@ -46,16 +59,41 @@ class GameState {
             this.stage = data.stage;
         }
     }
-    public output(): any {
+    public output(): GameData {
         return {
             players: this.players,
             logs: this.logs,
             version: this.version,
             stage: this.stage
-        }
+        } as GameData
     }
 }
 
-class Game {
+export class Game {
+    pcid!: string;
     state: GameState = new GameState();
+    constructor() {
+        this.pcid = getLocalPcID();
+        const oldState = this.read<GameData>('oldState', {
+            players: [],
+            logs: [],
+            version: 0,
+            stage: 'Welcome'
+        });
+        this.state.read(oldState);
+        console.log("GAME", this);
+    }
+
+
+    public read<T>(key: string, defaultValue: T) {
+        const last = read(`${this.pcid}#${key}`);
+        if (isNull(last)) {
+            return defaultValue;
+        }
+        return last as T;
+    }
+
+    public write(key: string, value: any) {
+        return write(`${this.pcid}#${key}`, value);
+    }
 }
