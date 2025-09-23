@@ -12,9 +12,7 @@ const inputText = ref('');
 <template>
   <div class="wrap">
     <div class="title">
-      <Avatar :size="'medium'" :dead="false" :word="'团'" :camp="'wolf'"></Avatar>
-      <Avatar :size="'medium'" :dead="false" :word="'本'" :camp="'human'"></Avatar>
-      <Avatar :size="'medium'" :dead="true" :word="'杀'" :camp="'wolf'"></Avatar>
+      <span>招募中...</span>
     </div>
     <el-input class="input" v-model="inputText" :size="'large'" :placeholder="'请输入游戏内便于辨认的昵称（最好是游戏内昵称）'"></el-input>
     <el-button class="button" type="primary" :size="'large'">开一局</el-button>

@@ -19,6 +19,13 @@ body {
   margin: 0;
   place-items: center;
   min-height: 100vh;
-  --el-color-primary: rgb(218, 0, 0);
+  --el-color-primary: #f82020;
+  --el-color-primary-light-3: #ffa0a0;
+  --el-color-primary-light-5: #fcaeae;
+  --el-color-primary-light-7: #fcb2b2;
+  --el-color-primary-light-8: #ffd8d8;
+  --el-color-primary-light-9: #ffe2e2;
+  --el-color-primary-light-11: #f0f8ff;
+  --el-color-primary-dark-2: #da2828;
 
 }

@@ -37,8 +37,6 @@ const props = withDefaults(defineProps<props>(), {
         background-color: #000 !important;
         box-shadow: 0 0 20px rgb(255, 0, 0) !important;
     }
-
-
 }
 
 .avatar {
