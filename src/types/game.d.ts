@@ -6,7 +6,7 @@ type eventName =
     | 'morning-start' | 'morning-end' | 'night-start' | 'night-end' | 'daylight-start' | 'daylight-end' | 'evening-start' | 'evening-end'
     | 'message' | 'skill'
 
-type roleName = '裁判' | '狼人' | '预言家' | '女巫' | '女巫' | '平民' | '猎人'
+type roleName = '裁判' | '狼人' | '预言家' | '女巫' | '女巫' | '平民' | '猎人' | '未知' | '未分配'
 type skillName = 'vote' | 'shooter' | 'revive' | 'divination' | 'justice'
 
 interface Event {

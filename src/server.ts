@@ -5,22 +5,23 @@ export class Server extends EventInType<{
     join: { playerId: string, playerName: string }
     chat: { playerId: string, message: string }
 }> {
-    hostid: string;
     connected: boolean = false;
-    constructor(hostid: string) {
+    constructor() {
         super();
-        this.hostid = hostid;
         window.peerClient.on(`message`, message => {
             const from = message.from;
             const obj = JSON.parse(message.body);
+            console.log('message', obj)
             if (obj.type === 'heart') {
                 this.emit('heart', from);
             } else if (obj.type === 'skill') {
                 this.emit('skill', { playerId: from, skillName: obj.skillName, targetId: obj.targetId });
             } else if (obj.type === 'join') {
-                this.emit('join', { playerId: from, playerName: obj.playerName });
+                this.emit('join', { playerId: from, playerName: obj.name });
             } else if (obj.type === 'chat') {
                 this.emit('chat', { playerId: from, message: obj.message });
+            } else if (obj.type === 'connect') {
+                window.peerClient.sendMessage(from, JSON.stringify({ type: 'connect' }));
             }
         });
         this._connect();
@@ -29,27 +30,10 @@ export class Server extends EventInType<{
         if (this.connected) {
             return;
         }
-        await new Promise<void>((resolve, reject) => {
-            window.peerClient.once(`message-${this.hostid}`, message => {
-                if (JSON.parse(message).type === 'connect') {
-                    this.connected = true;
-                    resolve();
-                }
-            });
-            window.peerClient.sendMessage(this.hostid, JSON.stringify({ type: 'connect' }));
-            setTimeout(() => {
-                if (!this.connected) { reject('Connection timed out'); }
-            }, 10000);
 
-        });
-        this._heartbeat();
     }
-    protected async _heartbeat() {
-        setInterval(() => {
-            window.peerClient.sendMessage(this.hostid, JSON.stringify({ type: 'heart' }));
-        }, 100);
-    }
-    public async syncState(state: GameData) {
-        await window.peerClient.sendMessage(this.hostid, JSON.stringify({ type: 'state', state }));
+
+    public async sendState(target: string, state: GameData) {
+        await window.peerClient.sendMessage(target, JSON.stringify({ type: 'state', state }));
     }
 }

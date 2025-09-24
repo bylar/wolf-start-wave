@@ -1,5 +1,8 @@
-import { getLocalPcID, isNull, read, write } from "./classes/util";
+import { clone, getLocalPcID, isNull, read, write } from "./classes/util";
 import { EventInType } from "./classes/eventInType";
+import { reactive, watch } from "vue";
+import { Server } from "./server";
+import { Client } from "./client";
 
 export const stages = ['Welcome', 'Inviting', 'Morning', 'Night', 'Daylight', 'Evening', 'Result'];
 export const skills: { [name: string]: Skill } = {
@@ -96,6 +99,9 @@ export const roles: Role[] = [
     { word: '巫', name: '女巫', camp: 'human' }, // 3
     { word: '人', name: '平民', camp: 'human' }, // 4
     { word: '猎', name: '猎人', camp: 'human' }, // 5
+
+    { word: '新', name: '未分配', camp: 'undefined' }, // 6
+    { word: '迷', name: '未知', camp: 'undefined' }, // 7
 ];
 
 export class VoteBox {
@@ -128,29 +134,13 @@ export class GameState implements GameData {
     version: number = 0
     voteBox?: VoteBox
     dpsRank?: string
-
-    public read(data: any) {
-        const { players, logs, version, stage, voteBox, dpsRank } = data
-        this.players = players
-        this.logs = logs
-        this.version = version
-        this.stage = stage
-        this.voteBox = voteBox
-        this.dpsRank = dpsRank
-    }
-    public output(): GameData {
-        return {
-            players: this.players,
-            logs: this.logs,
-            version: this.version,
-            stage: this.stage
-        } as GameData
-    }
 }
 
 export class Game extends EventInType {
     pcid!: string
-    state: GameState = new GameState()
+    state!: GameData
+    server!: Server
+    client!: Client
     get player() {
         return this.state.players.find((player) => player.pcid == this.pcid)
     }
@@ -162,6 +152,14 @@ export class Game extends EventInType {
     }
     constructor() {
         super()
+        this.state = reactive({
+            logs: [],
+            version: 0,
+            players: [],
+            stage: 'Welcome',
+            chatMessages: [],
+            voteBox: undefined
+        });
         this.pcid = getLocalPcID()
         const lastState = this.read<GameData>('lastState', {
             logs: [],
@@ -170,20 +168,61 @@ export class Game extends EventInType {
             stage: 'Welcome',
             chatMessages: [],
         })
-        this.state.read(lastState)
+        this.load(lastState)
+        if (!this.server && this.isHost) {
+            this.launcherServer()
+        }
         console.log('this Game: ', this)
     }
-
+    public load(data: any) {
+        const { players, logs, version, stage, voteBox, dpsRank } = data
+        this.state.players = players
+        this.state.logs = logs
+        this.state.version = version
+        this.state.stage = stage
+        this.state.voteBox = voteBox
+        this.state.dpsRank = dpsRank
+    }
+    public reset() {
+        this.load({
+            logs: [],
+            version: 0,
+            players: [],
+            stage: 'Welcome',
+            chatMessages: [],
+        })
+    }
     public log(message: string) {
         this.state.logs.push({
             time: new Date().valueOf(),
             message: message
         })
-        this.write('lastState', this.state.output())
+        this.write('lastState', this.state)
     }
-
+    public launcherServer() {
+        this.server = new Server()
+        this.server.on('join', ({ playerId, playerName }: { playerId: string; playerName: string; }) => {
+            console.log('join', playerId, playerName)
+            const player = {
+                id: this.state.players.length,
+                pcid: playerId,
+                name: playerName,
+                role: roles[6]!,
+                alive: true
+            }
+            this.state.players.push(player);
+            this.write('lastState', this.state)
+            this.syncState(player);
+        });
+        watch(this.state, () => {
+            this.state.players.forEach(player => {
+                this.syncState(player)
+            })
+            this.write('lastState', this.state)
+        })
+    }
     public newGame(name: string) {
-        this.state = new GameState()
+        this.reset()
         this.state.players.push({
             id: 0,
             pcid: this.pcid,
@@ -192,7 +231,49 @@ export class Game extends EventInType {
             alive: true
         });
         this.state.stage = 'Inviting'
-        this.write('lastState', this.state.output())
+        this.launcherServer()
+    }
+
+    public async joinGame(hostId: string, name: string) {
+        this.reset()
+        this.client = new Client(hostId)
+        await new Promise<void>((resolve, reject) => {
+            this.client.on('state', state => {
+                this.load(state)
+                resolve()
+            });
+            this.client.join(name)
+            setTimeout(() => {
+                if (this.state.stage == 'Welcome') reject('join game timeout')
+            }, 5000)
+        })
+        this.state.stage = 'Inviting'
+        this.write('lastState', this.state)
+    }
+
+    public async syncState(target: Player) {
+        const obj = clone(this.state)
+        if (target.pcid === this.pcid) {
+            return
+        } else if (target.role.camp === 'wolf') {
+            obj.players.forEach(player => {
+                if (target.pcid === player.pcid) return
+                if (player.role.camp === 'human') {
+                    player.role = roles[7]!
+                }
+            });
+        } else if (target.role.camp === 'human') {
+            obj.players.forEach(player => {
+                if (target.pcid === player.pcid) return
+                if (player.role.camp != 'master') {
+                    player.role = roles[7]!
+                }
+            });
+        }
+        if (!(['预言家', '裁判'].includes(target.role.name))) {
+            delete obj.dpsRank;
+        }
+        this.server.sendState(target.pcid, obj)
     }
 
     public read<T>(key: string, defaultValue: T) {

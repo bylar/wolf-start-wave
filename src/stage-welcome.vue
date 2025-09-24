@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import Avatar from './components/avatar.vue';
-import { ref, toRefs } from 'vue';
+import { onMounted, ref, toRefs } from 'vue';
 import { Game } from './game';
 const props = defineProps<{
   game: Game
@@ -11,6 +11,11 @@ const startGame = () => {
   game.value.newGame(inputText.value);
   inputText.value
 }
+const joinGame = () => {
+  game.value.joinGame(hostId, inputText.value);
+  inputText.value
+}
+const hostId = location.pathname.slice(1);
 </script>
 <template>
   <div class="wrap">
@@ -19,9 +24,17 @@ const startGame = () => {
       <Avatar :size="'medium'" :dead="false" :word="'本'" :camp="'human'"></Avatar>
       <Avatar :size="'medium'" :dead="true" :word="'杀'" :camp="'wolf'"></Avatar>
     </div>
-    <el-input class="input" v-model="inputText" :size="'large'" :placeholder="'请输入游戏内便于辨认的昵称（最好是游戏内昵称）'"></el-input>
-    <el-button class="button" @click="startGame" type="primary" :size="'large'">开一局</el-button>
-    <span class="tip"> [发起者身份固定为裁判] </span>
+    <template v-if="hostId.length === 36">
+      <el-input class="input" v-model="inputText" :size="'large'" :placeholder="'请输入游戏内便于辨认的昵称（最好是游戏内昵称）'"></el-input>
+      <el-button class="button" @click="joinGame" type="primary" :size="'large'">参与对局</el-button>
+      <span class="tip"> [发起者身份固定为裁判] </span>
+    </template>
+    <template v-else>
+      <el-input class="input" v-model="inputText" :size="'large'" :placeholder="'请输入游戏内便于辨认的昵称（最好是游戏内昵称）'"></el-input>
+      <el-button class="button" @click="startGame" type="primary" :size="'large'">开一局</el-button>
+      <span class="tip"> [发起者身份固定为裁判] </span>
+    </template>
+
   </div>
 </template>
 

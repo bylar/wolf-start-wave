@@ -15,7 +15,6 @@ export const getLocalPcID = function () {
   return uuid;
 }
 
-
 export const write = function (key: string, value: any) {
   localStorage.setItem(key, JSON.stringify(value));
 }
@@ -26,4 +25,34 @@ export const read = function (key: string) {
 
 export const isNull = function (value: any) {
   return value === null || value === undefined;
+}
+
+// @ts-ignore
+export const copyText = async (value: string) => {
+  // 适配常见浏览器
+  if (navigator.clipboard) {
+    await navigator.clipboard.writeText(value);
+    // @ts-ignore
+  } else if (window.clipboardData && window.clipboardData.setData) {
+    // @ts-ignore
+    return window.clipboardData.setData('Text', value);
+    // @ts-ignore
+  } else if (document.queryCommandSupported && document.queryCommandSupported('copy')) {
+    var textarea = document.createElement('textarea');
+    textarea.textContent = value;
+    textarea.style.position = 'fixed';  // Avoid scrolling to bottom
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      // @ts-ignore
+      return document.execCommand('copy');  // Security exception may be thrown by some browsers
+    } catch (ex) {
+      console.warn('Copy to clipboard failed.', ex);
+      return false;
+    }
+  }
+}
+
+export const clone = <T>(obj: T): T => {
+  return JSON.parse(JSON.stringify(obj));
 }
