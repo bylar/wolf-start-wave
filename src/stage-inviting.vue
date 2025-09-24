@@ -1,12 +1,11 @@
 <script lang="ts" setup>
-import Avatar from './components/avatar.vue';
+import player from './components/player.vue';
 import { ref, toRefs } from 'vue';
 import { Game } from './game';
 const props = defineProps<{
   game: Game
 }>();
-const game = toRefs(props.game);
-const inputText = ref('');
+const { game } = toRefs(props);
 
 </script>
 <template>
@@ -14,9 +13,9 @@ const inputText = ref('');
     <div class="title">
       <span>招募中...</span>
     </div>
-    <el-input class="input" v-model="inputText" :size="'large'" :placeholder="'请输入游戏内便于辨认的昵称（最好是游戏内昵称）'"></el-input>
-    <el-button class="button" type="primary" :size="'large'">开一局</el-button>
-    <span class="tip"> [发起者身份固定为裁判] </span>
+    <div class="players">
+      <player v-for="player in game.state.players" :key="player.id" :player="player"></player>
+    </div>
   </div>
 </template>
 

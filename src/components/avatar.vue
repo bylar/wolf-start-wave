@@ -3,7 +3,7 @@ type props = {
     word?: string, src?: string
     dead: boolean;
     size?: 'small' | 'medium' | 'large';
-    camp?: 'human' | 'wolf' | 'master' | 'unknown'
+    camp?: camp
 }
 
 const props = withDefaults(defineProps<props>(), {

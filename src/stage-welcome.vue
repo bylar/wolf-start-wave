@@ -5,9 +5,12 @@ import { Game } from './game';
 const props = defineProps<{
   game: Game
 }>();
-const game = toRefs(props.game);
+const { game } = toRefs(props);
 const inputText = ref('');
-
+const startGame = () => {
+  game.value.newGame(inputText.value);
+  inputText.value
+}
 </script>
 <template>
   <div class="wrap">
@@ -17,7 +20,7 @@ const inputText = ref('');
       <Avatar :size="'medium'" :dead="true" :word="'杀'" :camp="'wolf'"></Avatar>
     </div>
     <el-input class="input" v-model="inputText" :size="'large'" :placeholder="'请输入游戏内便于辨认的昵称（最好是游戏内昵称）'"></el-input>
-    <el-button class="button" type="primary" :size="'large'">开一局</el-button>
+    <el-button class="button" @click="startGame" type="primary" :size="'large'">开一局</el-button>
     <span class="tip"> [发起者身份固定为裁判] </span>
   </div>
 </template>
