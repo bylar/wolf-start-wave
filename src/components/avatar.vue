@@ -66,7 +66,7 @@ const props = withDefaults(defineProps<props>(), {
     }
 
     &.small {
-        font-size: small;
+        font-size: 8px;
     }
 
     &.medium {

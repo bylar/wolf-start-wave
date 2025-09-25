@@ -19,7 +19,8 @@ interface Event {
 }
 
 interface Skill {
-    name: string
+    name: skillName
+    title: string
     stages: stage[]
     roles: roleName[]
     getCandidate(game: Game): Player[]

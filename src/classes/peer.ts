@@ -23,22 +23,24 @@ export class PeerClient extends EventInType<{
             path: '/tbs',
             debug: 3
         });
-        console.log('peer client created, id:', pcid);
+        this.monit();
+    }
+    public monit() {
         window._peer.on('error', (err) => {
-            console.log('peer error', err);
+            console.log('peer error', err)
         })
         window._peer.on("connection", (conn) => {
-            console.log('connected to ', conn.peer);
-            this.connections.set(conn.peer, conn);
+            console.log('connected to ', conn.peer)
+            this.connections.set(conn.peer, conn)
             conn.on("data", (data) => {
-                console.log('received data', data);
+                console.log('received data', data)
                 this.emit('message', {
                     from: conn.peer,
                     body: data as string
                 });
                 this.emit(`message-${conn.peer}`, data as string)
-            });
-        });
+            })
+        })
     }
     async sendMessage(target: string, message: string) {
         const connection = this.connections.get(target);
@@ -49,6 +51,14 @@ export class PeerClient extends EventInType<{
             newConnection.on('open', () => {
                 newConnection.send(message);
                 this.connections.set(target, newConnection);
+            })
+            newConnection.on('data', (data) => {
+                console.log('received data', data)
+                this.emit('message', {
+                    from: target,
+                    body: data as string
+                });
+                this.emit(`message-${target}`, data as string)
             })
         }
     }

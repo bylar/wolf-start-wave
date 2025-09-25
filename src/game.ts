@@ -1,13 +1,14 @@
-import { clone, getLocalPcID, isNull, read, write } from "./classes/util";
+import { clone, getLocalPcID, isNull, read, shuffle, write } from "./classes/util";
 import { EventInType } from "./classes/eventInType";
-import { reactive, watch } from "vue";
+import { computed, reactive, watch, type ComputedRef } from "vue";
 import { Server } from "./server";
 import { Client } from "./client";
 
 export const stages = ['Welcome', 'Inviting', 'Morning', 'Night', 'Daylight', 'Evening', 'Result'];
 export const skills: { [name: string]: Skill } = {
     vote: {
-        name: '投票',
+        name: 'vote',
+        title: '投票',
         stages: ['Daylight'],
         roles: ['平民', '猎人', '狼人', '女巫', '预言家'],
         getCandidate(game: Game): Player[] {
@@ -27,7 +28,8 @@ export const skills: { [name: string]: Skill } = {
         }
     },
     shooter: {
-        name: '枪击',
+        name: 'shooter',
+        title: '枪击',
         stages: ['Evening'],
         roles: ['猎人'],
         getCandidate(game: Game): Player[] {
@@ -45,7 +47,8 @@ export const skills: { [name: string]: Skill } = {
         }
     },
     revive: {
-        name: '复活',
+        name: 'revive',
+        title: '复活',
         stages: ['Evening'],
         roles: ['女巫'],
         getCandidate(game: Game): Player[] {
@@ -63,7 +66,8 @@ export const skills: { [name: string]: Skill } = {
         }
     },
     divination: {
-        name: '预言',
+        name: 'divination',
+        title: '预言',
         stages: ['Morning'],
         roles: ['预言家'],
         getCandidate(game: Game): Player[] {
@@ -78,7 +82,8 @@ export const skills: { [name: string]: Skill } = {
         }
     },
     justice: {
-        name: '裁决',
+        name: 'justice',
+        title: '裁决',
         stages: ['Evening'],
         roles: ['裁判'],
         getCandidate(_game: Game): Player[] {
@@ -91,18 +96,40 @@ export const skills: { [name: string]: Skill } = {
 };
 export const roles: Role[] = [
     // master
-    { word: '裁', name: '裁判', camp: 'master' }, // 0
-    // wolf
-    { word: '狼', name: '狼人', camp: 'wolf' }, // 1
-    // human
-    { word: '预', name: '预言家', camp: 'human' }, // 2
-    { word: '巫', name: '女巫', camp: 'human' }, // 3
-    { word: '人', name: '平民', camp: 'human' }, // 4
-    { word: '猎', name: '猎人', camp: 'human' }, // 5
+    /** 
+     * 裁判 编号0 不参与游戏中，作为游戏发起方 数量为 1
+     */
+    { word: '裁', name: '裁判', camp: 'master' },
+    /**
+     * 狼人 编号1 狼人阵营 数量为 3
+     */
+    { word: '狼', name: '狼人', camp: 'wolf' },
+    /**
+     * 预言家 编号2 人类阵营 数量为 1
+     */
+    { word: '预', name: '预言家', camp: 'human' },
+    /**
+     * 女巫 编号3 人类阵营 数量为 1
+     */
+    { word: '巫', name: '女巫', camp: 'human' },
+    /**
+     * 猎人 编号4 人类阵营 数量为 1
+     */
+    { word: '猎', name: '猎人', camp: 'human' },
+    /**
+     * 平民 编号5 人类阵营 数量为 13
+     */
+    { word: '人', name: '平民', camp: 'human' },
 
-    { word: '新', name: '未分配', camp: 'undefined' }, // 6
-    { word: '迷', name: '未知', camp: 'undefined' }, // 7
+    { word: '新', name: '未分配', camp: 'undefined' },
+    { word: '迷', name: '未知', camp: 'undefined' },
 ];
+// const defaultRule = {
+//     1: 3, 2: 1, 3: 1, 4: 1, 5: 13
+// }
+const defaultRule = {
+    1: 1, 2: 1, 3: 1, 5: 1
+}
 
 export class VoteBox {
     box: { [key: number]: number } = {}
@@ -141,6 +168,7 @@ export class Game extends EventInType {
     state!: GameData
     server!: Server
     client!: Client
+    opraters !: ComputedRef<Skill[]>
     get player() {
         return this.state.players.find((player) => player.pcid == this.pcid)
     }
@@ -172,6 +200,10 @@ export class Game extends EventInType {
         if (!this.server && this.isHost) {
             this.launcherServer()
         }
+        this.opraters = computed(() => {
+
+            return Object.values(skills);
+        })
         console.log('this Game: ', this)
     }
     public load(data: any) {
@@ -286,5 +318,20 @@ export class Game extends EventInType {
 
     public write(key: string, value: any) {
         return write(`${this.pcid}#${key}`, value)
+    }
+
+    public assignRole(rule: { [key: string]: number } = defaultRule) {
+        const roleDepot = [];
+        for (let i in rule) {
+            for (let j = 0; j < rule[i]!; j++) {
+                roleDepot.push(roles[Number(i)]!)
+            }
+        }
+        const suffled = shuffle(roleDepot);
+        this.state.players.slice(1).forEach(player => {
+            player.role = suffled.pop()!
+        })
+        this.state.stage = 'Night'
+        this.write('lastState', this.state)
     }
 }
